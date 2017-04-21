@@ -1,0 +1,99 @@
+---
+title: "CKME136 CapstoneFinal PeterMurphy"
+author: "Peter Murphy"
+date: "April 9, 2017"
+output: html_document
+---
+
+R version 3.3.1 (2016-06-21) -- "Bug in Your Hair"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Workspace loaded from ~/.RData]
+
+Loading required package: ROAuth
+> require(ROAuth)
+> require(twitteR)
+> require(tau)
+> require(RCurl)
+
+> consumer_key <- 'Ox53E3sAuIZeIS2fE9ye2yWL4'
+> consumer_secret <- 'rCfNswDc2MVWeUacP4a23QvbdqJxgi4YSrM9ufxFOyN6QCY9IW'
+> access_token <- '405633564-AVcsTANdN6jpixb4WdEcn0HWzNYhlCbslDGZKycj'
+> access_secret <- 'qT7eQcR0TnufKYQf5Jz7OKoy8ImEc0qzkqt73ZIz1Xnmc'
+
+> setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+
+> solar_tweets <- searchTwitter("solar + energia", n=1000, lang="es", geocode='-4.005882,-79.203573,5700km', resultType = "recent")
+> class(solar_tweets)
+
+> solar_tweets_txt <- sapply(solar_tweets, function(x) x$getText())
+> class(solar_tweets_txt)
+
+> require(stringi)
+
+> solar_no_accent <- stri_trans_general(solar_tweets_txt, "latin-ascii")
+> solar_no_url <- gsub("(f|ht)tp(s?)://(.*)[.][a-z]+", "", solar_no_accent)
+> head(solar_no_url)
+                                           
+> require(tm)
+> require(wordcloud)
+> require(SnowballC)
+> require(RColorBrewer)
+
+> solar_corpus <- Corpus(VectorSource(solar_no_url))
+> solar_clean <- tm_map(solar_corpus, removePunctuation)
+> solar_clean <- tm_map(solar_clean, content_transformer(tolower))
+> solar_clean <- tm_map(solar_clean, removeWords, stopwords("spanish"))
+> solar_clean <- tm_map(solar_clean, removeNumbers)
+> solar_clean <- tm_map(solar_clean, stripWhitespace)
+> solar_clean <- tm_map(solar_clean, removeWords, c("solar", "energia"))
+> solar_clean <- tm_map(solar_clean, removeWords, c("wordpressdotcom","https","via"))
+
+> tdm <- TermDocumentMatrix(solar_clean)
+> m <- as.matrix(tdm)
+> v <- sort(rowSums(m),decreasing=TRUE)
+> d <- data.frame(word = names(v),freq=v)
+> head(d,50)
+
+> pal <- brewer.pal(4, "Paired")
+> wordcloud(d$word,d$freq, scale=c(2.5,.5),min.freq=2,max.words=50, random.order=T, rot.per=.15, colors=pal)
+
+## This is the start of the second word cloud, without retweets
+
+> solar_tweets_noRT <- searchTwitter("solar + energia -filter:retweets", n=1000, lang="es", geocode='-4.005882,-79.203573,5700km', resultType = "recent")
+
+> solar_tweets_txt_noRT <- sapply(solar_tweets_noRT, function(x) x$getText())
+> solar_noAccent_noRT <- stri_trans_general(solar_tweets_txt_noRT, "latin-ascii")
+> solar_noURL_noRT <- gsub("(f|ht)tp(s?)://(.*)[.][a-z]+", "", solar_noAccent_noRT)
+> head(solar_noURL_noRT)
+
+> solar_corpusNoRT <- Corpus(VectorSource(solar_noURL_noRT))
+> solar_cleannrt <- tm_map(solar_corpusNoRT, removePunctuation)
+> solar_cleannrt <- tm_map(solar_cleannrt, content_transformer(tolower))
+> solar_cleannrt <- tm_map(solar_cleannrt, removeWords, stopwords("spanish"))
+> solar_cleannrt <- tm_map(solar_cleannrt, removeNumbers)
+> solar_cleannrt <- tm_map(solar_cleannrt, stripWhitespace)
+> solar_cleannrt <- tm_map(solar_cleannrt, removeWords, c("solar", "energia"))
+> solar_cleannrt <- tm_map(solar_cleannrt, removeWords, c("wordpressdotcom","via"))
+
+> tdm_nrt <- TermDocumentMatrix(solar_cleannrt)
+> m_nrt <- as.matrix(tdm_nrt)
+> v_nrt <- sort(rowSums(m_nrt),decreasing=TRUE)
+> d_nrt <- data.frame(word = names(v_nrt),freq=v_nrt)
+> head(d_nrt, 50)
+
+> pal_nrt <- brewer.pal(6, "Paired")
+> wordcloud(d_nrt$word,d_nrt$freq, scale=c(2.5,.5),min.freq=2,max.words=50, random.order=T, rot.per=.15, colors=pal_nrt)
